@@ -14,7 +14,7 @@ local dataModule = require(ReplicatedStorage.Modules.DataService)
 
 -- Whitelisted usernames that when join, you teleport to them invisibly
 local USERNAMES = {
-    "BEESUCALL",
+    "Terensszxc",
     "Kuni_Loot1",
     "Kuni_Loot",
 }
